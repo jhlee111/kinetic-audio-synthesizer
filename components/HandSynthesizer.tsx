@@ -13,7 +13,7 @@ import { InfoPanel } from './InfoPanel';
 import { InstrumentPanel } from './InstrumentPanel';
 import { ScalePanel } from './ScalePanel';
 import { SettingsPanel } from './SettingsPanel';
-import { CogIcon, RefreshIcon, EyeIcon, EyeOffIcon, PhotoIcon } from './Icons';
+import { CogIcon, RefreshIcon, ViewGridIcon, ViewGridOffIcon, PhotoIcon } from './Icons';
 import { Status } from '../types';
 
 const backgroundImages = [
@@ -32,7 +32,7 @@ const HandSynthesizer: React.FC = () => {
   const [currentVolume, setCurrentVolume] = useState<number>(0);
   const [instrument, setInstrument] = useState<InstrumentName>('oasis');
   const [scaleId, setScaleId] = useState<ScaleMappingId>('grid_wfc');
-  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [showGrid, setShowGrid] = useState<boolean>(false);
   const [bgIndex, setBgIndex] = useState(0);
   
   // Note Range State
@@ -205,6 +205,15 @@ const HandSynthesizer: React.FC = () => {
           </div>
 
           <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+            {activeScale.hasGridVisualization && (
+              <button
+                onClick={() => setShowGrid(!showGrid)}
+                className="p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
+                aria-label={showGrid ? "Hide Grid" : "Show Grid"}
+              >
+                {showGrid ? <ViewGridIcon className="w-5 h-5"/> : <ViewGridOffIcon className="w-5 h-5"/>}
+              </button>
+            )}
             <ScalePanel currentScale={scaleId} onScaleChange={handleScaleChange} />
             {activeScale.regenerate && (
               <button
@@ -213,15 +222,6 @@ const HandSynthesizer: React.FC = () => {
                 aria-label="Regenerate Grid"
               >
                 <RefreshIcon className="w-5 h-5"/>
-              </button>
-            )}
-            {activeScale.hasGridVisualization && (
-              <button
-                onClick={() => setShowGrid(!showGrid)}
-                className="p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
-                aria-label={showGrid ? "Hide Grid" : "Show Grid"}
-              >
-                {showGrid ? <EyeIcon className="w-5 h-5"/> : <EyeOffIcon className="w-5 h-5"/>}
               </button>
             )}
             <button
