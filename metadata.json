@@ -1,0 +1,8 @@
+{
+  "name": "Kinetic Audio Synthesizer",
+  "description": "An interactive audio synthesizer that generates sounds from a pentatonic scale based on your hand and finger movements, tracked in real-time via your webcam.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "prompt": ""
+}
