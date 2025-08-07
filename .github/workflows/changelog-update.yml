@@ -1,0 +1,91 @@
+name: Update Changelog on Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update changelog for'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Get release info
+        id: release_info
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+            echo "BODY<<EOF" >> $GITHUB_OUTPUT
+            echo "${{ github.event.release.body }}" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "BODY=Manual changelog update" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Install changelog generator
+        run: npm install -g conventional-changelog-cli
+        
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="${{ steps.release_info.outputs.VERSION }}"
+          VERSION_NO_V=${VERSION#v}
+          
+          # Backup current changelog
+          cp CHANGELOG.md CHANGELOG.md.bak
+          
+          # Create new changelog entry
+          echo "# Changelog" > temp_changelog.md
+          echo "" >> temp_changelog.md
+          echo "All notable changes to this project will be documented in this file." >> temp_changelog.md
+          echo "" >> temp_changelog.md
+          echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)," >> temp_changelog.md
+          echo "and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> temp_changelog.md
+          echo "" >> temp_changelog.md
+          
+          # Add new release
+          echo "## [$VERSION_NO_V] - $(date +%Y-%m-%d)" >> temp_changelog.md
+          echo "" >> temp_changelog.md
+          
+          # Add release notes if available
+          if [ -n "${{ steps.release_info.outputs.BODY }}" ]; then
+            echo "${{ steps.release_info.outputs.BODY }}" >> temp_changelog.md
+            echo "" >> temp_changelog.md
+          fi
+          
+          # Append existing changelog (skip header)
+          tail -n +6 CHANGELOG.md.bak >> temp_changelog.md
+          
+          # Replace changelog
+          mv temp_changelog.md CHANGELOG.md
+          rm CHANGELOG.md.bak
+          
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          if ! git diff --staged --quiet; then
+            git commit -m "docs: update CHANGELOG.md for ${{ steps.release_info.outputs.VERSION }} [skip ci]"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
