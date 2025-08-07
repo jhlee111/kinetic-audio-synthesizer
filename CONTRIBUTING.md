@@ -67,24 +67,26 @@ Common scopes for this project:
 
 ## Creating a Release
 
-Releases are automated through GitHub Actions:
+### Recommended Process
 
-### Method 1: Automatic Release (Recommended)
-
-1. Follow conventional commit messages in your PRs
-2. When merged to main, release-please will automatically:
-   - Create a release PR with version bump
-   - Generate changelog entries
-   - Create GitHub release when PR is merged
-
-### Method 2: Manual Tag Release
-
-1. Create and push a semantic version tag:
+1. **Use the release script (easiest):**
    ```bash
-   git tag v1.2.3
-   git push origin v1.2.3
+   ./scripts/release.sh
    ```
-2. GitHub Actions will automatically:
+   This will:
+   - Prompt for version bump type
+   - Update package.json
+   - Create a commit and tag
+   - Push to trigger automated release
+
+2. **Manual tag release:**
+   ```bash
+   # Update version in package.json first
+   npm version patch  # or minor/major
+   git push origin main --tags
+   ```
+
+3. **GitHub Actions will automatically:**
    - Generate changelog for the release
    - Update CHANGELOG.md
    - Create a GitHub release
