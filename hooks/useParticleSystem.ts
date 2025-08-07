@@ -1,12 +1,15 @@
 import { useRef, useCallback } from 'react';
 import type { Particle } from '../types';
 import { NOTE_COLORS } from '../constants';
+import { useUserConfig } from './useUserConfig';
 
 export const useParticleSystem = () => {
+  const { config } = useUserConfig();
   const particlesRef = useRef<Particle[]>([]);
 
   const emitParticles = useCallback((x: number, y: number, volume: number, noteIndex: number, canvas: HTMLCanvasElement) => {
-    const particleCount = Math.ceil(volume * 5);
+    const baseParticleCount = Math.ceil(volume * 5);
+    const particleCount = Math.ceil(baseParticleCount * config.particleCount);
     const noteColor = NOTE_COLORS[noteIndex % NOTE_COLORS.length];
     
     const startX = (x * canvas.width) - (canvas.width / 2);
@@ -27,7 +30,7 @@ export const useParticleSystem = () => {
         vy: 0,
       });
     }
-  }, []);
+  }, [config.particleCount]);
 
   const updateAndDrawParticles = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     const focalLength = canvas.width / 2;

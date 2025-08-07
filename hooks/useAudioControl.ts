@@ -4,13 +4,14 @@ import { processHandDataForGain, resetAudioSmoothening } from '../utils/audioUti
 import { scaleMappings, ScaleMappingId } from '../scales';
 import { MASTER_PENTATONIC_SCALE } from '../constants';
 import { Position } from '../scales/types';
+import { useUserConfig } from './useUserConfig';
 
 interface UseAudioControlReturn {
   currentNote: string;
   currentVolume: number;
   instrument: InstrumentName;
   scaleId: ScaleMappingId;
-  handleInstrumentChange: (instrument: InstrumentName) => void;
+  handleInstrumentChange: (instrument: InstrumentName) => Promise<void>;
   handleScaleChange: (scaleId: ScaleMappingId) => void;
   processAudio: (position: Position | undefined, landmarks: any, minNoteIndex: number, maxNoteIndex: number) => void;
   initializeAudio: () => Promise<void>;
@@ -18,19 +19,22 @@ interface UseAudioControlReturn {
 }
 
 export const useAudioControl = (): UseAudioControlReturn => {
+  const { config, setInstrument: saveInstrument, setScale: saveScale } = useUserConfig();
   const [currentNote, setCurrentNote] = useState<string>('--');
   const [currentVolume, setCurrentVolume] = useState<number>(0);
-  const [instrument, setInstrument] = useState<InstrumentName>('starlight');
-  const [scaleId, setScaleId] = useState<ScaleMappingId>('grid_wfc');
+  
+  // Use config values
+  const instrument = config.instrument;
+  const scaleId = config.scaleId;
 
-  const handleInstrumentChange = useCallback((newInstrument: InstrumentName) => {
-    setInstrument(newInstrument);
-    audioService.setInstrument(newInstrument);
-  }, []);
+  const handleInstrumentChange = useCallback(async (newInstrument: InstrumentName) => {
+    saveInstrument(newInstrument);
+    await audioService.setInstrument(newInstrument);
+  }, [saveInstrument]);
 
   const handleScaleChange = useCallback((newScaleId: ScaleMappingId) => {
-    setScaleId(newScaleId);
-  }, []);
+    saveScale(newScaleId);
+  }, [saveScale]);
 
   const initializeAudio = useCallback(async () => {
     await audioService.init();

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { PhotoIcon, SearchIcon, CheckIcon, XIcon } from './Icons';
+import { useUserConfig } from '../hooks/useUserConfig';
 
 interface UnsplashImage {
   id: string;
@@ -28,7 +29,8 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
   onBackgroundSelect,
   defaultBackgrounds
 }) => {
-  const [searchQuery, setSearchQuery] = useState('space nebula galaxy');
+  const { config, setSearchQuery: saveSearchQuery } = useUserConfig();
+  const [searchQuery, setSearchQuery] = useState(config.lastUsedSearchQuery);
   const [searchResults, setSearchResults] = useState<UnsplashImage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string>('');
@@ -108,8 +110,10 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
   }, [searchQuery, searchUnsplash]);
 
   const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  }, []);
+    const newQuery = e.target.value;
+    setSearchQuery(newQuery);
+    saveSearchQuery(newQuery);
+  }, [saveSearchQuery]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { MASTER_PENTATONIC_SCALE, NOTE_NAMES } from '../constants';
+import { useUserConfig } from '../hooks/useUserConfig';
 
 interface SettingsPanelProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onMinChange,
   onMaxChange,
 }) => {
+  const { config, setParticleCount, resetConfig } = useUserConfig();
   if (!isOpen) return null;
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,9 +62,15 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
-        <h2 className="text-2xl font-bold text-center mb-6">Note Range</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">Settings</h2>
 
         <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium text-white mb-4">Note Range</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Adjust the range of notes that can be played with hand gestures.
+            </p>
+          </div>
           {/* Lowest Note Slider */}
           <div>
             <div className="flex justify-between items-baseline mb-2">
@@ -96,6 +104,50 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-thumb-fuchsia"
             />
           </div>
+          
+          <div>
+            <h3 className="text-lg font-medium text-white mb-4">Visual Effects</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Control the intensity of particle effects.
+            </p>
+            
+            <div>
+              <div className="flex justify-between items-baseline mb-2">
+                <label className="font-semibold text-gray-300">Particle Density</label>
+                <span className="text-lg font-mono bg-purple-400/10 text-purple-300 px-2 py-0.5 rounded">{Math.round(config.particleCount * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0.1"
+                max="3.0"
+                step="0.1"
+                value={config.particleCount}
+                onChange={(e) => setParticleCount(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-thumb-purple"
+              />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>Low</span>
+                <span>Normal</span>
+                <span>High</span>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium text-white mb-4">Reset Settings</h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Reset all settings to their default values.
+            </p>
+            <button
+              onClick={() => {
+                resetConfig();
+                onClose();
+              }}
+              className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            >
+              Reset All Settings
+            </button>
+          </div>
         </div>
       </div>
       <style>{`
@@ -122,6 +174,17 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             width: 20px;
             height: 20px;
             background: #d946ef;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            cursor: pointer;
+            margin-top: -7px;
+          }
+          .range-thumb-purple::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #a855f7;
             border-radius: 50%;
             border: 2px solid #fff;
             cursor: pointer;

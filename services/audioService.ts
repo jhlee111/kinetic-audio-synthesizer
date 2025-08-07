@@ -1,146 +1,135 @@
 import * as Tone from 'tone';
+import { PluginRegistry } from './PluginRegistry';
+import { InstrumentPlugin } from '../types/plugin';
+import { 
+  OasisPlugin, 
+  CelestePlugin, 
+  StarlightPlugin, 
+  WarmLeadPlugin, 
+  IndianFlutePlugin 
+} from '../plugins';
 
-export type InstrumentName = 'oasis' | 'celeste' | 'starlight' | 'warmlead';
-
-type SynthType = Tone.Synth | Tone.FMSynth | Tone.MonoSynth;
+export type InstrumentName = 'oasis' | 'celeste' | 'starlight' | 'warmlead' | 'indianflute';
 
 class AudioService {
-  private synths: Map<InstrumentName, SynthType> = new Map();
-  private activeSynth: SynthType | null = null;
+  private pluginRegistry = PluginRegistry.getInstance();
+  private currentPlugin: InstrumentPlugin | null = null;
   private isInitialized = false;
-  private isPlaying = false;
-
-  // Effects chain nodes
-  private chorus: Tone.Chorus | null = null;
-  private delay: Tone.PingPongDelay | null = null;
-  private reverb: Tone.Reverb | null = null;
 
   public async init() {
     if (this.isInitialized) return;
     try {
-      await Tone.start();
+      // Note: Tone.start() will be called when user interacts with the page
+      // to satisfy Chrome's autoplay policy
+      
       // Lower master volume to create headroom for effects
       Tone.getDestination().volume.value = -9;
 
-      // 1. Create shared effects chain and connect it to the master output
-      this.reverb = new Tone.Reverb({
-        decay: 4,
-        preDelay: 0.01,
-        wet: 0.5
-      }).toDestination();
-
-      this.delay = new Tone.PingPongDelay({
-        delayTime: "8n.", // Dotted eighth note delay
-        feedback: 0.4,
-        wet: 0.3
-      }).connect(this.reverb);
-
-      this.chorus = new Tone.Chorus({
-        frequency: 1.5,
-        delayTime: 3.5,
-        depth: 0.7,
-        wet: 0.4
-      }).connect(this.delay);
+      // Initialize plugin registry
+      await this.pluginRegistry.initialize();
       
-      const effectInput = this.chorus; // All synths will feed into the chorus first
-
-      // 2. Re-define instruments with richer sounds and connect them to the effects chain
+      // Register built-in plugins
+      await this.registerBuiltInPlugins();
       
-      // Oasis: Upgraded to a richer, wider sound with FatOscillator
-      const oasisSynth = new Tone.Synth({
-        oscillator: { type: 'fatsine', spread: 40, count: 3 }, // Was 'sine'
-        envelope: { attack: 0.2, decay: 0.3, sustain: 0.7, release: 2 } // Longer release
-      }).connect(effectInput);
-      this.synths.set('oasis', oasisSynth);
-      
-      // Celeste: Add a subtle vibrato for more life
-      const celesteSynth = new Tone.FMSynth({
-        harmonicity: 3.01, modulationIndex: 14,
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 1.5 },
-        modulation: { type: 'square' },
-        modulationEnvelope: { attack: 0.02, decay: 0.3, sustain: 0, release: 0.8 }
-      }).connect(effectInput);
-      // Vibrato LFO to make it shimmer
-      const vibrato = new Tone.LFO('6hz', -5, 5).start();
-      vibrato.connect(celesteSynth.detune);
-      this.synths.set('celeste', celesteSynth);
-
-      // Starlight: More atmospheric with tweaked settings for pads
-      const starlightSynth = new Tone.FMSynth({
-        harmonicity: 1.5,
-        modulationIndex: 20,
-        oscillator: { type: "triangle" },
-        envelope: { attack: 0.8, decay: 0.1, sustain: 0.7, release: 2.5 },
-        modulation: { type: "sine" },
-        modulationEnvelope: { attack: 1.2, decay: 0, sustain: 1, release: 2.5 },
-      }).connect(effectInput);
-      this.synths.set('starlight', starlightSynth);
-
-      // Warm Lead: Connect to effects chain for more presence
-      const warmLeadSynth = new Tone.MonoSynth({
-        portamento: 0.01,
-        oscillator: { type: "sawtooth" },
-        envelope: { attack: 0.05, decay: 0.3, sustain: 0.4, release: 0.8 },
-        filter: { Q: 4, type: "lowpass", rolloff: -24 },
-        filterEnvelope: { attack: 0.01, decay: 0.7, sustain: 0.1, release: 1, baseFrequency: 300, octaves: 5 },
-      }).connect(effectInput);
-      this.synths.set('warmlead', warmLeadSynth);
-      
-      this.activeSynth = this.synths.get('starlight')!;
+      // Mark as initialized before setting instrument
       this.isInitialized = true;
+      
+      // Set default instrument
+      await this.setInstrument('starlight');
+      
     } catch (e) {
-      console.error("Could not initialize Tone.js", e);
+      console.error("Could not initialize Tone.js or plugins", e);
+      this.isInitialized = false;
     }
   }
   
-  public setInstrument(type: InstrumentName) {
-    if (!this.synths.has(type)) return;
-
-    // Stop all synthesizers to ensure a clean switch and prevent lingering sounds.
-    this.synths.forEach(synth => {
-      if (synth && typeof synth.triggerRelease === 'function') {
-        synth.triggerRelease(Tone.now());
-      }
+  public async ensureAudioContextStarted(): Promise<void> {
+    // Start audio context on user interaction
+    if (Tone.context.state !== 'running') {
+      await Tone.start();
+      console.log('Audio context started');
+    }
+  }
+  
+  private async registerBuiltInPlugins(): Promise<void> {
+    // Register all built-in plugins (these are just templates, not instances)
+    // The actual instances will be created when loaded via the factory
+    const pluginTemplates = [
+      new OasisPlugin(),
+      new CelestePlugin(),
+      new StarlightPlugin(),
+      new WarmLeadPlugin(),
+      new IndianFlutePlugin()
+    ];
+    
+    pluginTemplates.forEach(plugin => {
+      this.pluginRegistry.registerPlugin(plugin);
     });
     
-    this.activeSynth = this.synths.get(type)!;
-    this.isPlaying = false;
+    console.log('Built-in plugins registered:', this.pluginRegistry.getPluginStats());
+  }
+  
+  public async setInstrument(type: InstrumentName): Promise<void> {
+    if (!this.isInitialized) {
+      console.warn(`AudioService not initialized, cannot set instrument: ${type}`);
+      return;
+    }
+
+    console.log(`Setting instrument to: ${type}`);
+
+    // Stop current plugin if playing
+    if (this.currentPlugin) {
+      console.log(`Stopping current plugin: ${this.currentPlugin.id}`);
+      this.currentPlugin.stop();
+    }
+    
+    // Load new plugin
+    this.currentPlugin = await this.pluginRegistry.loadPlugin(type);
+    if (!this.currentPlugin) {
+      console.error(`Failed to load plugin: ${type}`);
+    } else {
+      console.log(`Successfully set instrument to: ${this.currentPlugin.name}`);
+    }
   }
   
   public stop() {
-    if (this.isPlaying) {
-      this.activeSynth?.triggerRelease(Tone.now());
-      this.isPlaying = false;
+    if (this.currentPlugin) {
+      this.currentPlugin.stop();
     }
   }
 
   public update(frequency: number, gain: number) {
-    if (!this.isInitialized || !this.activeSynth || !isFinite(frequency)) return;
-    
-    const velocity = Math.max(0, Math.min(1, gain));
-
-    if (velocity > 0.05 && !this.isPlaying) {
-      this.activeSynth.triggerAttack(frequency, Tone.now(), velocity);
-      this.isPlaying = true;
-    } else if (velocity <= 0.05 && this.isPlaying) {
-      this.activeSynth.triggerRelease(Tone.now());
-      this.isPlaying = false;
-    } else if (this.isPlaying) {
-      if (this.activeSynth instanceof Tone.MonoSynth || this.activeSynth instanceof Tone.FMSynth) {
-        // These synths have setNote for gliding
-        this.activeSynth.setNote(frequency, Tone.now() + 0.02);
-      } else if (this.activeSynth instanceof Tone.Synth) {
-        // Tone.Synth doesn't have setNote, so we ramp the frequency directly
-        this.activeSynth.frequency.rampTo(frequency, 0.05);
-      }
+    if (!this.isInitialized || !this.currentPlugin || !isFinite(frequency)) {
+      return;
     }
+    
+    this.currentPlugin.processHandData(frequency, gain);
   }
   
   public rampToGain(gainValue: number, _duration: number) {
-      if (gainValue < 0.01 && this.isPlaying) {
+      if (gainValue < 0.01 && this.currentPlugin?.isPlaying()) {
         this.stop();
       }
+  }
+  
+  // Plugin system methods
+  public getAvailableInstruments(): InstrumentPlugin[] {
+    return this.pluginRegistry.getAvailablePlugins();
+  }
+  
+  public getCurrentPlugin(): InstrumentPlugin | null {
+    return this.currentPlugin;
+  }
+  
+  public getPluginRegistry(): PluginRegistry {
+    return this.pluginRegistry;
+  }
+  
+  // Cleanup method
+  public dispose(): void {
+    this.pluginRegistry.dispose();
+    this.currentPlugin = null;
+    this.isInitialized = false;
   }
 }
 

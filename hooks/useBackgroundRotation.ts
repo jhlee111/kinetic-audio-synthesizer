@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useUserConfig } from './useUserConfig';
 
 export const defaultBackgroundImages = [
   'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop',
@@ -17,31 +18,30 @@ interface UseBackgroundRotationReturn {
 }
 
 export const useBackgroundRotation = (): UseBackgroundRotationReturn => {
-  const [bgIndex, setBgIndex] = useState(0);
-  const [customBackground, setCustomBackground] = useState<string | null>(null);
-  const [isUsingCustomBackground, setIsUsingCustomBackground] = useState(false);
+  const { config, setBackground } = useUserConfig();
+  
+  // Get current background info from config
+  const isUsingCustomBackground = config.isUsingCustomBackground;
+  const currentBackgroundImage = config.currentBackgroundImage;
 
   const changeBackground = useCallback(() => {
     if (isUsingCustomBackground) {
-      // Switch back to default backgrounds
-      setIsUsingCustomBackground(false);
-      setCustomBackground(null);
+      // Switch back to first default background
+      setBackground(defaultBackgroundImages[0], false);
     } else {
-      setBgIndex((prevIndex) => (prevIndex + 1) % defaultBackgroundImages.length);
+      // Find current index and move to next
+      const currentIndex = defaultBackgroundImages.indexOf(currentBackgroundImage);
+      const nextIndex = (currentIndex + 1) % defaultBackgroundImages.length;
+      setBackground(defaultBackgroundImages[nextIndex], false);
     }
-  }, [isUsingCustomBackground]);
+  }, [isUsingCustomBackground, currentBackgroundImage, setBackground]);
 
   const setCustomBackgroundImage = useCallback((imageUrl: string) => {
-    setCustomBackground(imageUrl);
-    setIsUsingCustomBackground(true);
-  }, []);
-
-  const currentImage = isUsingCustomBackground && customBackground 
-    ? customBackground 
-    : defaultBackgroundImages[bgIndex];
+    setBackground(imageUrl, true);
+  }, [setBackground]);
 
   return {
-    currentBackgroundImage: currentImage,
+    currentBackgroundImage,
     changeBackground,
     setCustomBackground: setCustomBackgroundImage,
     isUsingCustomBackground,

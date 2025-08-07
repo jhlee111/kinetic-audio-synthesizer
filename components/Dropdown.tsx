@@ -19,18 +19,6 @@ export const Dropdown = <T extends string>({ options, value, onChange, ariaLabel
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Guard against empty options to prevent crashes
-    if (!options || options.length === 0) {
-        return null;
-    }
-    
-    const selectedOption = options.find(opt => opt.value === value) ?? options[0];
-
-    const handleSelect = (optionValue: T) => {
-        onChange(optionValue);
-        setIsOpen(false);
-    };
-
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -42,6 +30,18 @@ export const Dropdown = <T extends string>({ options, value, onChange, ariaLabel
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Guard against empty options to prevent crashes
+    if (!options || options.length === 0) {
+        return null;
+    }
+    
+    const selectedOption = options.find(opt => opt.value === value) ?? options[0];
+
+    const handleSelect = (optionValue: T) => {
+        onChange(optionValue);
+        setIsOpen(false);
+    };
 
     const SelectedIcon = selectedOption.icon;
 

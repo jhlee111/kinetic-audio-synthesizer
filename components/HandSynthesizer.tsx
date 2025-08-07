@@ -5,8 +5,10 @@ import { useHandTracking } from '../hooks/useHandTracking';
 import { useAudioControl } from '../hooks/useAudioControl';
 import { useBackgroundRotation } from '../hooks/useBackgroundRotation';
 import { useNoteRange } from '../hooks/useNoteRange';
+import { useUserConfig } from '../hooks/useUserConfig';
 import { scaleMappings } from '../scales';
 import { MASTER_PENTATONIC_SCALE } from '../constants';
+import { audioService } from '../services/audioService';
 
 import { Visualizer } from './Visualizer';
 import { InfoPanel } from './InfoPanel';
@@ -19,9 +21,12 @@ import { Status } from '../types';
 
 const HandSynthesizer: React.FC = () => {
   // State
-  const [showGrid, setShowGrid] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
+  
+  // User configuration
+  const { config, setShowGrid } = useUserConfig();
+  const showGrid = config.showGrid;
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,6 +45,13 @@ const HandSynthesizer: React.FC = () => {
     await initializeAudio();
     resizeCanvas();
   }, [handleVideoLoaded, initializeAudio, resizeCanvas]);
+  
+  // Handle camera enable with audio context start
+  const handleEnableCamera = useCallback(async () => {
+    // Start audio context on user interaction (Chrome autoplay policy)
+    await audioService.ensureAudioContextStarted();
+    await enableCamera();
+  }, [enableCamera]);
   
   // Logic for a single animation frame
   const runDetectionFrame = useCallback(async () => {
@@ -125,7 +137,7 @@ const HandSynthesizer: React.FC = () => {
         videoRef={videoRef}
         status={status}
         webcamRunning={webcamRunning}
-        onStartCamera={enableCamera}
+        onStartCamera={handleEnableCamera}
         onVideoLoaded={handleVideoLoadedWithAudio}
       />
       

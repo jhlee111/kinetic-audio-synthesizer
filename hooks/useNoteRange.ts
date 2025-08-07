@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useUserConfig } from './useUserConfig';
 
 interface UseNoteRangeReturn {
   minNoteIndex: number;
@@ -8,16 +9,19 @@ interface UseNoteRangeReturn {
 }
 
 export const useNoteRange = (): UseNoteRangeReturn => {
-  const [minNoteIndex, setMinNoteIndex] = useState(10); // Start at C4
-  const [maxNoteIndex, setMaxNoteIndex] = useState(30); // End at C6
+  const { config, setNoteRange } = useUserConfig();
+  
+  // Get values from config
+  const minNoteIndex = config.minNoteIndex;
+  const maxNoteIndex = config.maxNoteIndex;
 
   const handleSetMinNoteIndex = useCallback((index: number) => {
-    setMinNoteIndex(index);
-  }, []);
+    setNoteRange(index, maxNoteIndex);
+  }, [maxNoteIndex, setNoteRange]);
 
   const handleSetMaxNoteIndex = useCallback((index: number) => {
-    setMaxNoteIndex(index);
-  }, []);
+    setNoteRange(minNoteIndex, index);
+  }, [minNoteIndex, setNoteRange]);
 
   return {
     minNoteIndex,
