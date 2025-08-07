@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { handTrackingService } from '../services/handTrackingService';
-import { audioService, InstrumentName } from '../services/audioService';
 import { useVisualEffects } from '../hooks/useVisualEffects';
-import { processHandDataForGain, resetAudioSmoothening } from '../utils/audioUtils';
-import { scaleMappings, ScaleMappingId } from '../scales';
-import { Position } from '../scales/types';
+import { useHandTracking } from '../hooks/useHandTracking';
+import { useAudioControl } from '../hooks/useAudioControl';
+import { useBackgroundRotation } from '../hooks/useBackgroundRotation';
+import { useNoteRange } from '../hooks/useNoteRange';
+import { scaleMappings } from '../scales';
 import { MASTER_PENTATONIC_SCALE } from '../constants';
 
 import { Visualizer } from './Visualizer';
@@ -13,100 +13,61 @@ import { InfoPanel } from './InfoPanel';
 import { InstrumentPanel } from './InstrumentPanel';
 import { ScalePanel } from './ScalePanel';
 import { SettingsPanel } from './SettingsPanel';
+import { BackgroundSelector } from './BackgroundSelector';
 import { CogIcon, RefreshIcon, ViewGridIcon, ViewGridOffIcon, PhotoIcon } from './Icons';
 import { Status } from '../types';
 
-const backgroundImages = [
-  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=2071&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1506443432602-ac2fcd6f54e0?q=80&w=2070&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1848&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1502134249126-9f3755a50d78?q=80&w=2070&auto=format&fit=crop'
-];
-
 const HandSynthesizer: React.FC = () => {
   // State
-  const [status, setStatus] = useState<Status>(Status.LOADING);
-  const [webcamRunning, setWebcamRunning] = useState<boolean>(false);
-  const [currentNote, setCurrentNote] = useState<string>('--');
-  const [currentVolume, setCurrentVolume] = useState<number>(0);
-  const [instrument, setInstrument] = useState<InstrumentName>('oasis');
-  const [scaleId, setScaleId] = useState<ScaleMappingId>('grid_wfc');
   const [showGrid, setShowGrid] = useState<boolean>(false);
-  const [bgIndex, setBgIndex] = useState(0);
-  
-  // Note Range State
-  const [minNoteIndex, setMinNoteIndex] = useState(10); // Start at C4
-  const [maxNoteIndex, setMaxNoteIndex] = useState(30); // End at C6
-  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isBackgroundSelectorOpen, setIsBackgroundSelectorOpen] = useState(false);
 
   // Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appContainerRef = useRef<HTMLDivElement>(null);
   
-  // Hooks
+  // Custom Hooks
   const { emitParticles, drawVisuals, resizeCanvas } = useVisualEffects(canvasRef);
+  const { status, webcamRunning, currentPosition, landmarks, videoRef, enableCamera, handleVideoLoaded, detect } = useHandTracking();
+  const { currentNote, currentVolume, instrument, scaleId, handleInstrumentChange, handleScaleChange, processAudio, initializeAudio } = useAudioControl();
+  const { currentBackgroundImage, changeBackground, setCustomBackground, defaultBackgrounds } = useBackgroundRotation();
+  const { minNoteIndex, maxNoteIndex, setMinNoteIndex, setMaxNoteIndex } = useNoteRange();
   
-  // Handlers
-  const handleInstrumentChange = (newInstrument: InstrumentName) => {
-    setInstrument(newInstrument);
-    audioService.setInstrument(newInstrument);
-  };
-
-  const handleScaleChange = (newScaleId: ScaleMappingId) => {
-    setScaleId(newScaleId);
-  };
-
-  const handleChangeBackground = () => {
-    setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
-  };
+  // Initialize audio service when video is loaded
+  const handleVideoLoadedWithAudio = useCallback(async () => {
+    await handleVideoLoaded();
+    await initializeAudio();
+    resizeCanvas();
+  }, [handleVideoLoaded, initializeAudio, resizeCanvas]);
   
   // Logic for a single animation frame
   const runDetectionFrame = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || !handTrackingService.isInitialized || video.readyState < 2) {
-      return;
+    if (!video) return;
+    
+    const detectionResult = detect(video);
+    
+    // Process audio based on detection results
+    processAudio(currentPosition, landmarks, minNoteIndex, maxNoteIndex);
+    
+    // Emit particles if we have a position and sufficient volume
+    if (currentPosition && landmarks && currentVolume > 5) {
+      const activeScaleMapping = scaleMappings[scaleId];
+      const scaleSlice = MASTER_PENTATONIC_SCALE.slice(minNoteIndex, maxNoteIndex + 1);
+      const noteData = activeScaleMapping.getNote(currentPosition, scaleSlice, minNoteIndex);
+      
+      if (noteData && currentVolume > 5) {
+        emitParticles(currentPosition.x, currentPosition.y, currentVolume / 100, noteData.noteIndex);
+      }
     }
     
-    let activePosition: Position | undefined;
+    // Draw visuals
     const activeScaleMapping = scaleMappings[scaleId];
     const scaleSlice = MASTER_PENTATONIC_SCALE.slice(minNoteIndex, maxNoteIndex + 1);
-    
-    const results = handTrackingService.detect(video, Date.now());
-    
-    if (results.landmarks && results.landmarks.length > 0) {
-      const landmarks = results.landmarks[0];
-      const indexTip = landmarks[8];
-      // Flip the x-coordinate to match the mirrored video feed
-      activePosition = { x: 1 - indexTip.x, y: indexTip.y };
-      
-      const noteData = activeScaleMapping.getNote(activePosition, scaleSlice, minNoteIndex);
-      const gain = processHandDataForGain(landmarks);
+    drawVisuals(activeScaleMapping, scaleSlice, minNoteIndex, currentPosition, showGrid);
 
-      if (noteData) {
-        audioService.update(noteData.frequency, gain);
-        setCurrentNote(noteData.noteName);
-        setCurrentVolume(Math.round(gain * 100));
-
-        if (gain > 0.05) {
-          emitParticles(activePosition.x, activePosition.y, gain, noteData.noteIndex);
-        }
-      }
-      
-      if (status !== Status.PLAYING) setStatus(Status.PLAYING);
-    } else {
-      audioService.rampToGain(0, 0.1);
-      resetAudioSmoothening();
-      setCurrentNote('--');
-      setCurrentVolume(0);
-      if (status === Status.PLAYING) setStatus(Status.READY);
-    }
-    
-    drawVisuals(activeScaleMapping, scaleSlice, minNoteIndex, activePosition, showGrid);
-
-  }, [drawVisuals, emitParticles, status, scaleId, minNoteIndex, maxNoteIndex, showGrid]);
+  }, [detect, processAudio, currentPosition, landmarks, currentVolume, minNoteIndex, maxNoteIndex, scaleId, emitParticles, drawVisuals, showGrid]);
   
   // Animation loop effect
   useEffect(() => {
@@ -126,45 +87,7 @@ const HandSynthesizer: React.FC = () => {
       }
     };
   }, [webcamRunning, runDetectionFrame]);
-
-  const handleVideoLoaded = useCallback(async () => {
-    // Guard against this being called multiple times
-    if (webcamRunning) return;
-
-    await audioService.init();
-    resizeCanvas();
-    setWebcamRunning(true);
-    setStatus(Status.READY);
-  }, [webcamRunning, resizeCanvas]);
-
-  const enableCam = useCallback(async () => {
-    if (!handTrackingService.isInitialized || webcamRunning) return;
-    setStatus(Status.AWAITING_CAMERA);
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error("getUserMedia error:", err);
-      setStatus(Status.ERROR);
-    }
-  }, [webcamRunning]);
   
-  // Lifecycle
-  useEffect(() => {
-    async function initialize() {
-      try {
-        await handTrackingService.initialize();
-        setStatus(Status.AWAITING_CAMERA);
-      } catch (error) {
-        console.error(error);
-        setStatus(Status.ERROR);
-      }
-    }
-    initialize();
-  }, []);
 
   useEffect(() => {
     const handleOrientationChange = () => {
@@ -181,10 +104,6 @@ const HandSynthesizer: React.FC = () => {
     // Cleanup on component unmount
     return () => {
       window.removeEventListener('orientationchange', handleOrientationChange);
-      audioService.stop();
-      if (videoRef.current?.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-      }
     }
   }, [scaleId, resizeCanvas]);
 
@@ -196,7 +115,7 @@ const HandSynthesizer: React.FC = () => {
       ref={appContainerRef} 
       className="relative w-full h-full overflow-hidden bg-black transition-all duration-1000"
       style={{
-        backgroundImage: `url(${backgroundImages[bgIndex]})`,
+        backgroundImage: `url(${currentBackgroundImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center center',
       }}
@@ -206,8 +125,8 @@ const HandSynthesizer: React.FC = () => {
         videoRef={videoRef}
         status={status}
         webcamRunning={webcamRunning}
-        onStartCamera={enableCam}
-        onVideoLoaded={handleVideoLoaded}
+        onStartCamera={enableCamera}
+        onVideoLoaded={handleVideoLoadedWithAudio}
       />
       
       {webcamRunning && (
@@ -237,9 +156,9 @@ const HandSynthesizer: React.FC = () => {
               </button>
             )}
             <button
-              onClick={handleChangeBackground}
+              onClick={() => setIsBackgroundSelectorOpen(true)}
               className="p-2 sm:p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
-              aria-label="Change Background"
+              aria-label="Select Background"
             >
               <PhotoIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
             </button>
@@ -262,6 +181,14 @@ const HandSynthesizer: React.FC = () => {
           />
 
           <InfoPanel currentNote={currentNote} currentVolume={currentVolume} />
+          
+          <BackgroundSelector
+            isOpen={isBackgroundSelectorOpen}
+            onClose={() => setIsBackgroundSelectorOpen(false)}
+            currentBackground={currentBackgroundImage}
+            onBackgroundSelect={setCustomBackground}
+            defaultBackgrounds={defaultBackgrounds}
+          />
         </>
       )}
     </div>

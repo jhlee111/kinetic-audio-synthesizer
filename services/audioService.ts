@@ -87,7 +87,7 @@ class AudioService {
       }).connect(effectInput);
       this.synths.set('warmlead', warmLeadSynth);
       
-      this.activeSynth = this.synths.get('oasis')!;
+      this.activeSynth = this.synths.get('starlight')!;
       this.isInitialized = true;
     } catch (e) {
       console.error("Could not initialize Tone.js", e);
