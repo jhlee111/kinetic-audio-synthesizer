@@ -9,7 +9,17 @@
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "deploy:full": "./scripts/deploy.sh",
+    "release": "./scripts/release.sh",
+    "setup:hooks": "./scripts/setup-hooks.sh",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "clean": "rm -rf dist node_modules",
+    "clean:install": "npm run clean && npm ci",
+    "check:build": "npm run build && echo 'Build successful!'",
+    "check:size": "du -sh dist/"
   },
   "dependencies": {
     "react-dom": "^18.2.0",

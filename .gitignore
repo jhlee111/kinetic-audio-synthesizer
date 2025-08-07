@@ -1,31 +1,194 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+.next/
+*.local
+
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.npm/
 
-node_modules
-dist
-dist-ssr
-*.local
+# Testing
+coverage/
+*.lcov
+.nyc_output/
+test-results/
+playwright-report/
+playwright/.cache/
+jest-cache/
+.jest/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 
-# Editor directories and files
+# IDE and Editor files
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.code-workspace
+
+# OS files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+.directory
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*.swn
+*.bak
+*.backup
+*~
+.fuse_hidden*
+.Trash-*
+.nfs*
+
+# Package manager files
+package-lock.json.backup
+yarn.lock.backup
+pnpm-lock.yaml.backup
+
+# TypeScript
+*.tsbuildinfo
+.tsc-cache/
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Production files
+*.min.js
+*.min.css
+!src/**/*.min.js
+!src/**/*.min.css
+
+# Debug files
+debug/
+*.map
+!src/**/*.map
+
+# Media files (if not needed in repo)
+# *.mp3
+# *.wav
+# *.ogg
+# *.mp4
+# *.webm
+
+# Documentation build
+docs/_build/
+docs/.docusaurus/
+.docusaurus/
+
+# Deployment
+.vercel/
+.netlify/
+.serverless/
+.fusebox/
+.dynamodb/
+.terraform/
+.cache/
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.ssh/
+secrets/
+credentials.json
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+# Python (if any Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Misc
+.grunt
+.lock-wscript
+.node_repl_history
+.yarn-integrity
+.cache
+.parcel-cache
+.turbo
+.vite/
+
+# Project specific
+/public/models/
+/public/wasm/
+*.wasm.map
+test-*.html
+!test-grid.html
+
+# GitHub Actions artifacts
+.github/actions/*/dist/
+
+# Release files
+release/
+releases/
+*.zip
+*.tar.gz
+*.tar
+
+# Performance profiling
+*.cpuprofile
+*.heapsnapshot
+chrome-profiler-events*.json
+
+# Error screenshots
+error-shots/
+
+# Local config overrides
+*.local.json
+*.local.yaml
+*.local.yml
+!example.local.json
