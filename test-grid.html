@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grid Coverage Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: #222;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            color: white;
+        }
+        #canvas {
+            background: #000;
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">
+        <div>Screen: <span id="screen-size"></span></div>
+        <div>Canvas: <span id="canvas-size"></span></div>
+        <div>Grid: <span id="grid-size"></span></div>
+        <div>Cell Size: <span id="cell-size"></span></div>
+        <div>Coverage: <span id="coverage"></span></div>
+        <div>Mode: <span id="mode"></span></div>
+    </div>
+
+    <script type="module">
+        // Updated responsive grid logic
+        function getResponsiveGridDimensions(canvasWidth, canvasHeight) {
+            const width = canvasWidth || window.innerWidth;
+            const height = canvasHeight || window.innerHeight;
+            const isMobile = window.innerWidth < 768;
+            
+            // For mobile devices
+            if (isMobile) {
+                // Calculate based on a target cell size that works well for touch
+                const targetCellSize = Math.min(width, height) / 5;
+                const cols = Math.ceil(width / targetCellSize);
+                const rows = Math.ceil(height / targetCellSize);
+                return { cols, rows };
+            } 
+            
+            // For desktop
+            const targetCellSize = Math.min(width, height) / 7;
+            const cols = Math.ceil(width / targetCellSize);
+            const rows = Math.ceil(height / targetCellSize);
+            return { cols, rows };
+        }
+
+        function calculateSquareCellSize(canvasWidth, canvasHeight, cols, rows) {
+            // Calculate the exact cell size needed to fill the viewport
+            const cellSize = Math.max(canvasWidth / cols, canvasHeight / rows);
+            
+            // No offset - fill the entire viewport
+            return {
+                cellSize,
+                actualCols: cols,
+                actualRows: rows,
+                offsetX: 0,
+                offsetY: 0
+            };
+        }
+
+        function drawGrid() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to window size
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            const { cols, rows } = getResponsiveGridDimensions(canvas.width, canvas.height);
+            const { cellSize, actualCols, actualRows, offsetX, offsetY } = 
+                calculateSquareCellSize(canvas.width, canvas.height, cols, rows);
+            
+            // Clear canvas
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid cells - fill entire viewport
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const x = c * cellSize;
+                    const y = r * cellSize;
+                    
+                    // Fill cell with color based on position
+                    const hue = (c / cols * 120 + r / rows * 120) % 360;
+                    ctx.fillStyle = `hsla(${hue}, 50%, 40%, 0.8)`;
+                    ctx.fillRect(x, y, cellSize - 1, cellSize - 1);
+                    
+                    // Draw cell number
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(`${c},${r}`, x + cellSize/2, y + cellSize/2);
+                }
+            }
+            
+            // Draw coverage area outline
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(offsetX, offsetY, actualCols * cellSize, actualRows * cellSize);
+            
+            // Update info
+            const screenInfo = document.getElementById('screen-size');
+            const canvasInfo = document.getElementById('canvas-size');
+            const gridInfo = document.getElementById('grid-size');
+            const cellInfo = document.getElementById('cell-size');
+            const coverageInfo = document.getElementById('coverage');
+            const modeInfo = document.getElementById('mode');
+            
+            screenInfo.textContent = `${window.innerWidth}x${window.innerHeight}`;
+            canvasInfo.textContent = `${canvas.width}x${canvas.height}`;
+            gridInfo.textContent = `${cols}x${rows} (actual: ${actualCols}x${actualRows})`;
+            cellInfo.textContent = `${cellSize.toFixed(1)}px`;
+            
+            const coverageWidth = (actualCols * cellSize) / canvas.width * 100;
+            const coverageHeight = (actualRows * cellSize) / canvas.height * 100;
+            coverageInfo.textContent = `${coverageWidth.toFixed(1)}% x ${coverageHeight.toFixed(1)}%`;
+            
+            const aspectRatio = window.innerWidth / window.innerHeight;
+            const isLandscape = aspectRatio > 1;
+            const isMobile = window.innerWidth < 768;
+            modeInfo.textContent = `${isMobile ? 'Mobile' : 'Desktop'} ${isLandscape ? 'Landscape' : 'Portrait'}`;
+        }
+
+        // Initial draw
+        drawGrid();
+        
+        // Redraw on resize
+        window.addEventListener('resize', drawGrid);
+        window.addEventListener('orientationchange', drawGrid);
+    </script>
+</body>
+</html>

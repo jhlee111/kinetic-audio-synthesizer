@@ -46,20 +46,20 @@ export const Dropdown = <T extends string>({ options, value, onChange, ariaLabel
     const SelectedIcon = selectedOption.icon;
 
     return (
-        <div className="relative w-48" ref={dropdownRef}>
+        <div className="relative w-32 sm:w-48" ref={dropdownRef}>
             <button
                 type="button"
-                className="w-full bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg shadow-md px-4 py-2.5 text-left text-white flex items-center justify-between transition-colors"
+                className="w-full bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg shadow-md px-2 sm:px-4 py-2 sm:py-2.5 text-left text-white flex items-center justify-between transition-colors"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
                 aria-label={ariaLabel}
             >
-                <div className="flex items-center gap-3">
-                    <SelectedIcon className="w-5 h-5" />
-                    <span className="font-semibold">{selectedOption.label}</span>
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <SelectedIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="font-semibold text-sm sm:text-base">{selectedOption.label}</span>
                 </div>
-                <ChevronDownIcon className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDownIcon className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             
             {isOpen && (
@@ -74,7 +74,7 @@ export const Dropdown = <T extends string>({ options, value, onChange, ariaLabel
                         return (
                             <li
                                 key={option.value}
-                                className={`px-4 py-3 flex items-center justify-between cursor-pointer text-sm font-medium transition-colors ${
+                                className={`px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between cursor-pointer text-sm font-medium transition-colors ${
                                     isSelected
                                         ? 'bg-purple-600/50 text-white'
                                         : 'text-gray-300 hover:bg-gray-700/70'
@@ -83,11 +83,11 @@ export const Dropdown = <T extends string>({ options, value, onChange, ariaLabel
                                 role="option"
                                 aria-selected={isSelected}
                             >
-                                <div className="flex items-center gap-3">
-                                    <Icon className="w-5 h-5" />
-                                    <span>{option.label}</span>
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <span className="text-xs sm:text-sm">{option.label}</span>
                                 </div>
-                                {isSelected && <CheckIcon className="w-5 h-5 text-purple-300" />}
+                                {isSelected && <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-300" />}
                             </li>
                         );
                     })}

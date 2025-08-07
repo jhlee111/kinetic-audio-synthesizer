@@ -45,8 +45,10 @@ export const useVisualEffects = (canvasRef: React.RefObject<HTMLCanvasElement>) 
   useEffect(() => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', resizeCanvas);
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('orientationchange', resizeCanvas);
     };
   }, [resizeCanvas]);
 

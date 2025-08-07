@@ -167,14 +167,26 @@ const HandSynthesizer: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handleOrientationChange = () => {
+      // Regenerate grid on orientation change
+      const activeScale = scaleMappings[scaleId];
+      if (activeScale.regenerate) {
+        activeScale.regenerate();
+      }
+      resizeCanvas();
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    
     // Cleanup on component unmount
     return () => {
+      window.removeEventListener('orientationchange', handleOrientationChange);
       audioService.stop();
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
       }
     }
-  }, []);
+  }, [scaleId, resizeCanvas]);
 
   const activeScale = scaleMappings[scaleId];
 
@@ -200,43 +212,43 @@ const HandSynthesizer: React.FC = () => {
       
       {webcamRunning && (
         <>
-          <div className="absolute top-4 left-4 z-30">
+          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-30">
             <InstrumentPanel currentInstrument={instrument} onInstrumentChange={handleInstrumentChange} />
           </div>
 
-          <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-30 flex items-center gap-1 sm:gap-2">
             {activeScale.hasGridVisualization && (
               <button
                 onClick={() => setShowGrid(!showGrid)}
-                className="p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
+                className="p-2 sm:p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
                 aria-label={showGrid ? "Hide Grid" : "Show Grid"}
               >
-                {showGrid ? <ViewGridIcon className="w-5 h-5"/> : <ViewGridOffIcon className="w-5 h-5"/>}
+                {showGrid ? <ViewGridIcon className="w-4 h-4 sm:w-5 sm:h-5"/> : <ViewGridOffIcon className="w-4 h-4 sm:w-5 sm:h-5"/>}
               </button>
             )}
             <ScalePanel currentScale={scaleId} onScaleChange={handleScaleChange} />
             {activeScale.regenerate && (
               <button
                 onClick={activeScale.regenerate}
-                className="p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
+                className="p-2 sm:p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
                 aria-label="Regenerate Grid"
               >
-                <RefreshIcon className="w-5 h-5"/>
+                <RefreshIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
               </button>
             )}
             <button
               onClick={handleChangeBackground}
-              className="p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
+              className="p-2 sm:p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
               aria-label="Change Background"
             >
-              <PhotoIcon className="w-5 h-5"/>
+              <PhotoIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
             </button>
             <button 
               onClick={() => setIsSettingsOpen(true)}
-              className="p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
+              className="p-2 sm:p-3 bg-gray-900/60 hover:bg-gray-800/80 border border-gray-700/80 backdrop-blur-sm rounded-lg text-white transition-colors"
               aria-label="Open Settings"
             >
-              <CogIcon className="w-5 h-5"/>
+              <CogIcon className="w-4 h-4 sm:w-5 sm:h-5"/>
             </button>
           </div>
           
