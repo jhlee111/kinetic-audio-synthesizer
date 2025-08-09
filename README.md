@@ -1,6 +1,7 @@
 # Kinetic Audio Synthesizer
 
 A hand-tracking based audio synthesizer that creates music through hand gestures using MediaPipe and Web Audio API.
+DEMO at https://jhlee111.github.io/kinetic-audio-synthesizer/
 
 ## Features
 
